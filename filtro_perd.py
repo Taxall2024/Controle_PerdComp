@@ -5,15 +5,27 @@ import numpy as np
 
 
 
-st.set_page_config(page_title='Filtro PER/DCOMP', layout='wide')
+st.set_page_config( layout='wide')
 
 
 class ControlePerdComp():
+
+  def __init__(self):
+    self.primeira_regra = False
+    self.segunda_regra = False
+    self.terceira_regra = False
+
+    self.lista_dfs_tratados = []
+
+    self.dataframe_primeira_regra = pd.DataFrame()
+    self.dataframe_segunda_regra = pd.DataFrame()
+    self.dataframe_terceira_regra = pd.DataFrame()
 
   def read_file(self,file_path):
 
       #arquivo = pd.read_csv(r"C:\Users\lauro.loyola\Desktop\Teste\consolidado.csv", sep=';')
       self.arquivo = pd.read_csv(file_path, sep=';')
+      print(self.arquivo.columns)
       return self.arquivo
       
   def preparando_arquivos_para_edciao(self):
@@ -46,6 +58,11 @@ class ControlePerdComp():
     self.seletor_perd = st.sidebar.selectbox('Selecione o PER/DCOMP:',options=numero_perd_inicial)
     self.tabela_exibicao = self.arquivo[self.arquivo['PER/DCOMP inicial'] == self.seletor_perd]
 
+   # for i in numero_perd_inicial:
+    #  self.tabela_exibicao = self.arquivo[self.arquivo['PER/DCOMP inicial'] == i]
+     # print('Numero Perd Originla ////;;; --- > ', i )
+      #self.aplicar_regras()
+
 
   def primeira_regra_filtragem(self):
   # Primeira regra de negocios
@@ -64,12 +81,15 @@ class ControlePerdComp():
                                                                                           valor_final_dois),
     
                                                                                              0 )
-
+    self.primeira_regra = True
+    print('Primeira regra de filtragem DENTRO DA FUNÇÃO DA PRIMEIRA REGRA ---___--->>>>>', self.primeira_regra)
     st.subheader('Primeira regra de filtragem')
     st.dataframe(self.tabela_exibicao)
 
+    self.dataframe_primeira_regra = self.tabela_exibicao
 
 
+    return self.dataframe_primeira_regra , self.primeira_regra
 
   def segunda_regra_filtragem(self):
 
@@ -82,45 +102,135 @@ class ControlePerdComp():
     
     def get_last_row(df):
 
-        df_filtrado = df[df['Situação'] == 'Retificado']
-        lista_retificados_cacelados =  df_filtrado['Retificado/Cancelado por']
-        perd_final = df[(df['PER/DCOMP'].isin(lista_retificados_cacelados))&(df['Retificado/Cancelado por'].isna())]
+        num_perd = self.seletor_perd
+
+        #df_filtrado = df[df['Situação'] == 'Retificado']
+        #lista_retificados_cacelados =  df_filtrado['Retificado/Cancelado por']
+        #perd_final = df[(df['PER/DCOMP'].isin(lista_retificados_cacelados))&(df['Retificado/Cancelado por'].isna())]
+
+        #self.segunda_regra = True
+        
+        row = df[df['PER/DCOMP'] == num_perd]
+        perd_final = df[df['PER/DCOMP'] == row['Retificado/Cancelado por'].iloc[0]]
+        while True:
+           if perd_final['Retificado/Cancelado por'].any():
+              row = df[df['PER/DCOMP'] == perd_final['Retificado/Cancelado por'].iloc[0]]
+              perd_final = df[df['PER/DCOMP'] == row['Retificado/Cancelado por'].iloc[0]]
+           else:
+              break
 
 
         return perd_final
+    
 
-    tabela_exibicao_condicional_dois = get_last_row(self.tabela_exibicao)
-    somatario_cred_utilizado_condicional_dois = self.tabela_exibicao['Créd. Orig. Necessário Débitos DCOMP ou Valor do PER'].sum() - tabela_exibicao_condicional_dois['Vl. Crédito Dt. Transmissão'].sum()
-    valor_final_segunda_condicional = round(tabela_exibicao_condicional_dois['Vl. Total Crédito'] - somatorio_credito_utilizado,2)
+
+    self.abela_exibicao_condicional_dois = get_last_row(self.tabela_exibicao)
+    st.data_editor(self.abela_exibicao_condicional_dois)
+    somatario_cred_utilizado_condicional_dois = self.tabela_exibicao['Créd. Orig. Necessário Débitos DCOMP ou Valor do PER'].sum() - self.abela_exibicao_condicional_dois['Vl. Crédito Dt. Transmissão'].sum()
+    valor_final_segunda_condicional = round(self.abela_exibicao_condicional_dois['Vl. Total Crédito'] - somatorio_credito_utilizado,2)
 
     #Regra numero 2 dentro no segundo np.where- -- ---
-    dataframe_sem_per_recente = self.tabela_exibicao.loc[self.tabela_exibicao['PER/DCOMP'] != tabela_exibicao_condicional_dois['PER/DCOMP'].iloc[0]]
+    dataframe_sem_per_recente = self.tabela_exibicao.loc[self.tabela_exibicao['PER/DCOMP'] != self.abela_exibicao_condicional_dois['PER/DCOMP'].iloc[0]]
+
+
     dataframe_sem_per_recente = dataframe_sem_per_recente.loc[
             ~dataframe_sem_per_recente['Situação'].isin(['Retificado', 'Cancelado',
                                                      'Pedido de cancelamento deferido', 
                                                      'Despacho decisório emitido', 'Em discussão administrativa - DRJ']),
-            'Vl. Total Crédito'
+            'Créd. Orig. Necessário Débitos DCOMP ou Valor do PER'
         ].sum()
 
     
-    valor_final_tecerira_condicional = round(tabela_exibicao_condicional_dois['Vl. Total Crédito'] - dataframe_sem_per_recente,2)
+    valor_final_tecerira_condicional = round(self.abela_exibicao_condicional_dois['Vl. Total Crédito'] - dataframe_sem_per_recente,2)
 
+    print('SHAPE SEGUNDA CONDICIONAL SEGUNDA REGRA ----->>>>     :', valor_final_segunda_condicional)
+    print('SHAPE SEGUNDA CONDICIONAL TERCEIRA REGRA ----->>>>     :', valor_final_tecerira_condicional)
+
+    valor_final_segunda_condicional_array = np.full(
+    len(self.tabela_exibicao), valor_final_segunda_condicional
+    )
+    valor_final_tecerira_condicional_array = np.full(
+        len(self.tabela_exibicao), valor_final_tecerira_condicional
+    )
       #Segunda condicional
-    self.tabela_exibicao['Resultado'] = np.where(~self.tabela_exibicao['Situação'].isin(['Retificado', 'Cancelado','Pedido de cancelamento deferido','Despacho decisório emitido','Em discussão administrativa - DRJ']),
-                    np.where(tabela_exibicao_condicional_dois['Créd. Orig. Necessário Débitos DCOMP ou Valor do PER'].iloc[0] != tabela_exibicao_condicional_dois['Vl. Crédito Dt. Transmissão'].iloc[0],
-                                                                                          valor_final_segunda_condicional,
-                                                                                            valor_final_tecerira_condicional), 
+    self.tabela_exibicao['Resultado'] = np.where(~self.tabela_exibicao['Situação'].isin(['Retificado', 'Cancelado',
+                                                                                         'Pedido de cancelamento deferido','Despacho decisório emitido',
+                                                                                         'Em discussão administrativa - DRJ']),
+                    np.where(self.abela_exibicao_condicional_dois['Créd. Orig. Necessário Débitos DCOMP ou Valor do PER'].iloc[0] != self.abela_exibicao_condicional_dois['Vl. Crédito Dt. Transmissão'].iloc[0],
+                                                                                          valor_final_segunda_condicional_array,
+                                                                                            valor_final_tecerira_condicional_array), 
                                                                                                 0, )
+    
+    self.dataframe_segunda_regra = self.tabela_exibicao
+
     st.subheader('Segunda regra de filtragem')
     st.dataframe(self.tabela_exibicao)
+    return self.dataframe_segunda_regra, self.segunda_regra
+  
+  def terceira_regra_filtragem(self):
 
 
+      if self.abela_exibicao_condicional_dois['Situação'].iloc[0] in ['Análise concluída', 'Homologado', 'PER deferido']:
+         self.tabela_exibicao['Resultado'] = 0
+         self.terceita_regra = True
+     
+     
+      valor_a_subtrair = self.arquivo.loc[self.arquivo['PER/DCOMP'] == self.seletor_perd]
+    
+      if valor_a_subtrair['Situação'].iloc[0] in ['Análise concluída','Análise concluída''Homologado', 'PER deferido']:
+         self.tabela_exibicao['Resultado'] = 0
+         self.terceita_regra = True
+         self.lista_dfs_tratados.append(self.tabela_exibicao)
+     
+      self.dataframe_terceira_regra = self.tabela_exibicao
+  
+      st.subheader('Terceira regra de filtragem')     
+      st.dataframe(self.tabela_exibicao)
+
+      return self.dataframe_terceira_regra, self.terceira_regra
+   
+  def aplicar_regras(self):
+      try:
+          self.primeira_regra_filtragem()
+      except Exception as e:
+          print('Error : Regra número 1 : --->', e)
+
+      try:
+          self.segunda_regra_filtragem()
+      except Exception as e:
+          print('Error : Regra número 2 : --->', e)
+
+      try:
+          self.terceira_regra_filtragem()
+      except Exception as e:
+          print('Error : Regra número 3 : --->', e)
+
+      # Adiciona à lista de acordo com as condições
+      if self.terceira_regra:
+          self.lista_dfs_tratados.append(self.dataframe_terceira_regra)
+          print('Regras para criação da lista para o dataframe ,<------------------->', self.terceira_regra)
+      if self.segunda_regra:
+          self.lista_dfs_tratados.append(self.dataframe_segunda_regra)
+          print('Regras para criação da lista para o SEGUNDA CONDIÇÃO dataframe ,<------------------->', self.segunda_regra)
+      if self.primeira_regra:
+          self.lista_dfs_tratados.append(self.dataframe_primeira_regra)
+          print('Regras para criação da lista para o PRIMEIRA CONDIÇÃO dataframe ,<------------------->', self.primeira_regra)
+      
+  def main(self):
+    self.read_file(r"/home/lauro/taxall/pisConfinsSaldo/Controle_PerdComp/consolidado.csv")
+    self.preparando_arquivos_para_edciao()
+    self.filtragem_de_dados()
+    self.aplicar_regras()
+    #data_frame_final = pd.concat(self.lista_dfs_tratados)
+    #data_frame_final = data_frame_final.to_excel('/home/lauro/taxall/pisConfinsSaldo/Controle_PerdComp/data_frame_final_Saldo_PerDcomp.xlsx', index=False)
+  #  st.subheader('Dataframe final')
+  #  st.dataframe(data_frame_final)
+
+    print('Lista de dataframes tratados -----------> ', self.lista_dfs_tratados)
+    return self.lista_dfs_tratados
 
 ct = ControlePerdComp()
-ct.read_file(r"C:\Users\lauro.loyola\Desktop\Controle PerdComp\consolidado.csv")
-ct.preparando_arquivos_para_edciao()
-ct.filtragem_de_dados()
-ct.primeira_regra_filtragem()
-ct.segunda_regra_filtragem()
+ct.main()
+
 
 
