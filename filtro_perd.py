@@ -82,9 +82,7 @@ class ControlePerdComp():
           self.tabela_exibicao['Situação'].isin(['Retificado', 'Cancelado', 'Pedido de cancelamento deferido', 'Despacho decisório deferido', 'Em discussão administrativa - DRJ']),
                 np.where(self.tabela_exibicao['Créd. Orig. Necessário Débitos DCOMP ou Valor do PER'].iloc[0] != self.tabela_exibicao['Vl. Crédito Dt. Transmissão'].iloc[0],
                                                                                         self.valor_a_subtrair - somatorio_credito_utilizado,
-                                                                                          valor_final_dois),
-    
-                                                                                             0 )
+                                                                                          valor_final_dois), 0 )
     
 
     print('Primeira regra de filtragem DENTRO DA FUNÇÃO DA PRIMEIRA REGRA ---___--->>>>>', self.primeira_regra)
@@ -92,8 +90,9 @@ class ControlePerdComp():
     if self.tabela_exibicao['Resultado'].any() > 0:
         self.tabela_exibicao['Resultado'] = self.tabela_exibicao['Resultado'].max()
     if self.tabela_exibicao['Resultado'].any() < 0:
-        self.tabela_exibicao['Resultado'] = 2342232342
-
+        self.tabela_exibicao['Resultado'] = 0
+    if valor_a_subtrair['Tipo de documento'].iloc[0] == 'Decl. Compensação':
+        self.tabela_exibicao['Resultado'] = 0
     if  self.arquivo.loc[self.arquivo['PER/DCOMP'] == self.seletor_perd, 'Retificado/Cancelado por'].any() != 'Retificado':
         self.lista_dfs_tratados.append(self.tabela_exibicao)
 
@@ -111,9 +110,7 @@ class ControlePerdComp():
     somatorio_credito_utilizado = self.tabela_exibicao.loc[
             ~self.tabela_exibicao['Situação'].isin(['Retificado', 'Cancelado',
                                                      'Pedido de cancelamento deferido', 
-                                                     'Despacho decisório emitido', 'Em discussão administrativa - DRJ']),
-            'Vl. Total Crédito'
-        ].sum()
+                                                     'Despacho decisório emitido', 'Em discussão administrativa - DRJ']), 'Vl. Total Crédito'].sum()
     
     def get_last_row(df):
 
@@ -181,7 +178,8 @@ class ControlePerdComp():
         self.tabela_exibicao['Resultado'] = self.tabela_exibicao['Resultado'].max()
     if self.tabela_exibicao['Resultado'].any() < 0:
         self.tabela_exibicao['Resultado'] = 0
-    
+    if self.abela_exibicao_condicional_dois['Tipo de documento'].iloc[0] == 'Decl. Compensação':        
+      self.tabela_exibicao['Resultado'] = 0
     if  self.abela_exibicao_condicional_dois.loc[self.abela_exibicao_condicional_dois['Situação'] == 'Retificado' ].empty:
         self.lista_dfs_tratados.append(self.tabela_exibicao)
 
@@ -215,10 +213,31 @@ class ControlePerdComp():
         print('Error : Regra número 1 : --->', e)
     data_frame_final = pd.concat(self.lista_dfs_tratados)
     
-    #data_frame_final = data_frame_final.to_excel('data_frame_final_Saldo_PerDcomp.xlsx', index=False)
+    valor_total = data_frame_final['Resultado'].drop_duplicates().sum()
+    valor_total_formatado = f"{valor_total:,.2f}" 
+    st.metric(label='Valor total', value=valor_total_formatado)
     
-    st.subheader('Dataframe final')
-    st.dataframe(data_frame_final)
+
+    st.write('')
+    st.write('')
+    st.write('')
+    
+    seletor_perd = st.sidebar.selectbox('Selecione o PER/DCOMP', data_frame_final['PER/DCOMP inicial'].drop_duplicates())
+    dataframe_filtrado_pelo_seletor = data_frame_final.loc[data_frame_final['PER/DCOMP inicial'] == seletor_perd]
+    st.subheader('Cadeias de PER/DCOMP')
+    st.dataframe(dataframe_filtrado_pelo_seletor)
+
+
+
+    with st.expander('PER/DCOMP com valores maiores que zero'):
+      df_com_valores = data_frame_final.loc[data_frame_final['Resultado'] > 0]
+      df_com_valores = df_com_valores.drop_duplicates(subset='Resultado').reset_index(drop=True)
+      st.subheader('PER/DCOMP com valores')
+      st.dataframe(df_com_valores)
+    
+    with st.expander('Tabela com todas as PER/DCOMP'):
+      st.subheader('Dataframe final')
+      st.dataframe(data_frame_final)
 
     print('Lista de dataframes tratados -----------> ', self.lista_dfs_tratados)
     return self.lista_dfs_tratados
