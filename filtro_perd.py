@@ -20,7 +20,6 @@ class ControlePerdComp():
     self.dataframe_primeira_regra = pd.DataFrame()
     self.dataframe_segunda_regra = pd.DataFrame()
 
-
   def read_file(self,file_path):
 
       #arquivo = pd.read_csv(r"C:\Users\lauro.loyola\Desktop\Teste\consolidado.csv", sep=';')
@@ -57,8 +56,6 @@ class ControlePerdComp():
 
     self.seletor_perd = numero_perd_inicial
     self.tabela_exibicao = self.arquivo[self.arquivo['PER/DCOMP inicial'] == numero_perd_inicial]
-
-
 
   def primeira_regra_filtragem(self):
   # Primeira regra de negocios
@@ -188,8 +185,7 @@ class ControlePerdComp():
     #st.subheader('Segunda regra de filtragem')
     #st.dataframe(self.tabela_exibicao)
     return self.dataframe_segunda_regra, self.segunda_regra
- 
-   
+  
   def aplicar_regras(self):
       try:
           self.primeira_regra_filtragem()
@@ -221,7 +217,7 @@ class ControlePerdComp():
     st.write('')
     st.write('')
     st.write('')
-    
+
     seletor_perd = st.sidebar.selectbox('Selecione o PER/DCOMP', data_frame_final['PER/DCOMP inicial'].drop_duplicates())
     dataframe_filtrado_pelo_seletor = data_frame_final.loc[data_frame_final['PER/DCOMP inicial'] == seletor_perd]
     st.subheader('Cadeias de PER/DCOMP')
