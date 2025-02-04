@@ -20,15 +20,15 @@ class ControlePerdComp():
     self.dataframe_primeira_regra = pd.DataFrame()
     self.dataframe_segunda_regra = pd.DataFrame()
 
-  def read_file(self,file_path):
+  def read_file(self,file):
 
-      #arquivo = pd.read_csv(r"C:\Users\lauro.loyola\Desktop\Teste\consolidado.csv", sep=';')
-      self.arquivo = pd.read_csv(file_path, sep=';')
+     
+      self.arquivo = pd.read_csv(file,sep=';')
       print(self.arquivo.columns)
       return self.arquivo
       
   def preparando_arquivos_para_edciao(self):
-      numero_per = self.arquivo['PER/DCOMP'].drop_duplicates()
+      #numero_per = self.arquivo['PER/DCOMP'].drop_duplicates()
       numero_perd_inicial =self.arquivo['PER/DCOMP inicial'].drop_duplicates()
       print('Contagem numero PERD')
       print(numero_perd_inicial.count())
@@ -196,8 +196,12 @@ class ControlePerdComp():
           print('Error : Regra número 2 : --->', e)
       
   def main(self):
-    self.read_file(r"C:\Users\lauro.loyola\Desktop\Tax\Controle PerdComp\consolidado.csv")
+
+    file_uploader = st.file_uploader('Escolha o arquivo csv', type='csv')
+
+    self.read_file(file_uploader)
     self.preparando_arquivos_para_edciao()
+    print('---------------- => LOG ',file_uploader)
     
     numero_perd_inicial =self.arquivo['PER/DCOMP inicial'].drop_duplicates()
     for i in numero_perd_inicial:
@@ -242,6 +246,5 @@ class ControlePerdComp():
 
 ct = ControlePerdComp()
 ct.main()
-
 
 
