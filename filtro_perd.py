@@ -196,7 +196,7 @@ class ControlePerdComp():
           print('Error : Regra número 2 : --->', e)
       
   def main(self):
-    self.read_file(r"C:\Users\lauro.loyola\Desktop\Controle PerdComp\consolidado.csv")
+    self.read_file(r"C:\Users\lauro.loyola\Desktop\Tax\Controle PerdComp\consolidado.csv")
     self.preparando_arquivos_para_edciao()
     
     numero_perd_inicial =self.arquivo['PER/DCOMP inicial'].drop_duplicates()
