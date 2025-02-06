@@ -196,8 +196,12 @@ class ControlePerdComp():
           print('Error : Regra número 2 : --->', e)
       
   def main(self):
-
-    file_uploader = st.file_uploader('Escolha o arquivo csv', type='csv')
+    try:
+      a,b,c,d =st.columns(4)
+      with a:
+        file_uploader = st.file_uploader('Escolha o arquivo csv', type='csv')
+    except Exception as e:
+       pass
 
     self.read_file(file_uploader)
     self.preparando_arquivos_para_edciao()
@@ -214,29 +218,34 @@ class ControlePerdComp():
     data_frame_final = pd.concat(self.lista_dfs_tratados)
     
     valor_total = data_frame_final['Resultado'].drop_duplicates().sum()
-    valor_total_formatado = f"{valor_total:,.2f}" 
-    st.metric(label='Valor total', value=valor_total_formatado)
+    valor_total_formatado = f"R$ {valor_total:,.2f}".replace('.', '_').replace(',', '.').replace('_', ',')
+    st.metric(label='Saldo Disponivel para compensação', value=valor_total_formatado)
     
 
     st.write('')
     st.write('')
     st.write('')
 
-    seletor_perd = st.sidebar.selectbox('Selecione o PER/DCOMP', data_frame_final['PER/DCOMP inicial'].drop_duplicates())
-    dataframe_filtrado_pelo_seletor = data_frame_final.loc[data_frame_final['PER/DCOMP inicial'] == seletor_perd]
-    st.subheader('Cadeias de PER/DCOMP')
+
+    df_com_valores = data_frame_final.loc[data_frame_final['Resultado'] >= 0]
+    df_com_valores = df_com_valores.drop_duplicates(subset='Resultado').reset_index(drop=True)
+
+    st.subheader('Detalhamento Saldo disponivel para Compensação por cadeia')
+    st.dataframe(df_com_valores.sort_values(by='Resultado', ascending=False))
+
+
+    seletor_perd = st.multiselect("Selecione as PER/DCOMP's", data_frame_final['PER/DCOMP inicial'].drop_duplicates())
+
+    dataframe_filtrado_pelo_seletor = data_frame_final.loc[data_frame_final['PER/DCOMP inicial'].isin(seletor_perd)]
+    
+    st.subheader('Cadeias selecionadas')
     st.dataframe(dataframe_filtrado_pelo_seletor)
 
 
 
-    with st.expander('PER/DCOMP com valores maiores que zero'):
-      df_com_valores = data_frame_final.loc[data_frame_final['Resultado'] > 0]
-      df_com_valores = df_com_valores.drop_duplicates(subset='Resultado').reset_index(drop=True)
-      st.subheader('PER/DCOMP com valores')
-      st.dataframe(df_com_valores)
     
     with st.expander('Tabela com todas as PER/DCOMP'):
-      st.subheader('Dataframe final')
+      st.subheader('Arquivo Geral')
       st.dataframe(data_frame_final)
 
     print('Lista de dataframes tratados -----------> ', self.lista_dfs_tratados)
@@ -246,5 +255,3 @@ class ControlePerdComp():
 
 ct = ControlePerdComp()
 ct.main()
-
-
