@@ -46,18 +46,4 @@ Este projeto tem como objetivo realizar a filtragem e aplicação de regras de n
    pip install -r requirements.txt
 
    streamlit run filtro_perd.py
-from graphviz import Digraph
 
-dot = Digraph()
-
-dot.node('A', 'read_file')
-dot.node('B', 'preparando_arquivos_para_edciao')
-dot.node('C', 'filtragem_de_dados')
-dot.node('D', 'primeira_regra_filtragem')
-dot.node('E', 'segunda_regra_filtragem')
-dot.node('F', 'aplicar_regras')
-dot.node('G', 'main')
-
-dot.edges(['AB', 'BC', 'CD', 'DE', 'EF', 'FG'])
-
-dot.render('organograma', format='png', view=True)
